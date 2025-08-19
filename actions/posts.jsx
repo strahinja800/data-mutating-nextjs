@@ -1,9 +1,10 @@
 'use server'
+import { uploadImage } from '@/lib/cloudinary'
 import { storePost } from '@/lib/posts'
 import { redirect } from 'next/navigation'
 
 export async function createPost(prevState, formData) {
-  const title = formData.get('title') // Between parenthesis is the name attribute
+  const title = formData.get('title')
   const image = formData.get('image')
   const content = formData.get('content')
 
@@ -25,12 +26,26 @@ export async function createPost(prevState, formData) {
     return { errors }
   }
 
-  storePost({
-    imageUrl: '',
-    title,
-    content,
-    userId: 1,
-  })
+  let imageUrl
+
+  try {
+    imageUrl = await uploadImage(image)
+  } catch (error) {
+    throw new Error(
+      'Image upload failed, post was not created. Please try agai later.'
+    )
+  }
+
+  try {
+    await storePost({
+      imageUrl: imageUrl,
+      title,
+      content,
+      userId: 1,
+    })
+  } catch (error) {
+    throw new Error('Storing data failed. Please try again later.')
+  }
 
   redirect('/feed')
 }
